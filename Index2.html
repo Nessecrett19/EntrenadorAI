@@ -48,11 +48,9 @@
         this.agent.setAttribute('color', '#FF0000');
         this.agent.setAttribute('position', '0 1.5 0'); // Initial position of the agent
         this.el.appendChild(this.agent);
-        this.agentSpeed = 0.05; // Set the movement speed of the agent
       },
 
       spawnItems: function() {
-        this.items = []; // Store references to the items
         for (let i = 0; i < this.totalItems; i++) {
           const item = document.createElement('a-sphere');
           item.setAttribute('class', 'search-item');
@@ -61,14 +59,12 @@
           item.setAttribute('position', `${Math.random() * 4 - 2} 1.5 ${Math.random() * 4 - 2}`);
           item.addEventListener('click', () => this.onItemClick(item));
           this.el.appendChild(item);
-          this.items.push(item);
         }
       },
 
       onItemClick: function(item) {
         this.itemsFound++;
         item.parentNode.removeChild(item);
-        this.items = this.items.filter(i => i !== item); // Remove from the list of items
         this.updateScore();
         this.evaluatePerformance();
       },
@@ -105,38 +101,6 @@
         }
       },
 
-      // Move the agent towards the nearest item
-      moveAgentTowardsItem: function() {
-        if (this.items.length === 0) return;
-
-        const nearestItem = this.getNearestItem();
-        const agentPosition = new THREE.Vector3().fromArray(this.agent.getAttribute('position').split(' '));
-        const targetPosition = new THREE.Vector3().fromArray(nearestItem.getAttribute('position').split(' '));
-
-        const direction = targetPosition.sub(agentPosition).normalize();
-        const newPosition = agentPosition.add(direction.multiplyScalar(this.agentSpeed));
-
-        this.agent.setAttribute('position', newPosition.toArray().join(' '));
-      },
-
-      getNearestItem: function() {
-        let nearestItem = null;
-        let minDistance = Infinity;
-
-        this.items.forEach(item => {
-          const itemPosition = new THREE.Vector3().fromArray(item.getAttribute('position').split(' '));
-          const agentPosition = new THREE.Vector3().fromArray(this.agent.getAttribute('position').split(' '));
-          const distance = agentPosition.distanceTo(itemPosition);
-
-          if (distance < minDistance) {
-            minDistance = distance;
-            nearestItem = item;
-          }
-        });
-
-        return nearestItem;
-      },
-
       trainAgent: function() {
         this.experienceBuffer.push({state: this.itemsFound / this.totalItems, reward: this.itemsFound});
 
@@ -156,10 +120,6 @@
             this.experienceBuffer = [];
           });
         }
-      },
-
-      tick: function(time, deltaTime) {
-        this.moveAgentTowardsItem(); // Make the agent move
       }
     });
 
