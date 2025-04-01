@@ -1,65 +1,122 @@
-// AR Hide and Seek Game using A-Frame and TensorFlow
-// Updated to include TensorFlow reinforcement learning
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AR Hide and Seek Game</title>
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+</head>
+<body>
+    <script>
+    // AR Hide and Seek Game using A-Frame and TensorFlow
+    // Training the reinforcement learning agent
 
-AFRAME.registerComponent('game-manager', {
-  init: function() {
-    this.itemsFound = 0;
-    this.totalItems = 5;
-    this.agentDifficulty = 1; // Initial difficulty level
-    this.agentModel = this.initializeAgent();
-    this.spawnItems();
-  },
+    AFRAME.registerComponent('game-manager', {
+      init: function() {
+        this.itemsFound = 0;
+        this.totalItems = 5;
+        this.agentDifficulty = 1;
+        this.agentModel = this.initializeAgent();
+        this.experienceBuffer = [];
+        this.gamma = 0.9; // Discount factor for future rewards
+        this.spawnItems();
+        this.hintElement = this.createHintElement();
+      },
 
-  initializeAgent: function() {
-    // TensorFlow model setup
-    const model = tf.sequential();
-    model.add(tf.layers.dense({units: 5, inputShape: [1], activation: 'relu'}));
-    model.add(tf.layers.dense({units: 3, activation: 'softmax'}));
-    model.compile({optimizer: 'adam', loss: 'categoricalCrossentropy'});
-    console.log('Agent model initialized');
-    return model;
-  },
+      initializeAgent: function() {
+        const model = tf.sequential();
+        model.add(tf.layers.dense({units: 5, inputShape: [1], activation: 'relu'}));
+        model.add(tf.layers.dense({units: 3, activation: 'softmax'}));
+        model.compile({optimizer: 'adam', loss: 'categoricalCrossentropy'});
+        console.log('Agent model initialized');
+        return model;
+      },
 
-  spawnItems: function() {
-    for (let i = 0; i < this.totalItems; i++) {
-      const item = document.createElement('a-sphere');
-      item.setAttribute('class', 'search-item');
-      item.setAttribute('color', '#FFC107');
-      item.setAttribute('radius', '0.3');
-      item.setAttribute('position', `${Math.random() * 4 - 2} 1.5 ${Math.random() * 4 - 2}`);
-      item.addEventListener('click', () => this.onItemClick(item));
-      this.el.appendChild(item);
-    }
-  },
+      createHintElement: function() {
+        const hint = document.createElement('a-entity');
+        hint.setAttribute('geometry', {primitive: 'cone', height: 0.5, radiusBottom: 0.2});
+        hint.setAttribute('material', 'color: #00FF00');
+        hint.setAttribute('visible', false);
+        this.el.appendChild(hint);
+        return hint;
+      },
 
-  onItemClick: function(item) {
-    this.itemsFound++;
-    item.parentNode.removeChild(item);
-    this.updateScore();
-    this.evaluatePerformance();
-  },
+      spawnItems: function() {
+        for (let i = 0; i < this.totalItems; i++) {
+          const item = document.createElement('a-sphere');
+          item.setAttribute('class', 'search-item');
+          item.setAttribute('color', '#FFC107');
+          item.setAttribute('radius', '0.3');
+          item.setAttribute('position', `${Math.random() * 4 - 2} 1.5 ${Math.random() * 4 - 2}`);
+          item.addEventListener('click', () => this.onItemClick(item));
+          this.el.appendChild(item);
+        }
+      },
 
-  updateScore: function() {
-    console.log(`Items Found: ${this.itemsFound}/${this.totalItems}`);
-  },
+      onItemClick: function(item) {
+        this.itemsFound++;
+        item.parentNode.removeChild(item);
+        this.updateScore();
+        this.evaluatePerformance();
+      },
 
-  evaluatePerformance: function() {
-    if (this.itemsFound >= this.totalItems) {
-      console.log('Game Complete!');
-    } else if (this.agentModel) {
-      const state = tf.tensor2d([this.itemsFound / this.totalItems], [1, 1]);
-      const prediction = this.agentModel.predict(state);
-      this.agentDifficulty = prediction.argMax(-1).dataSync()[0];
-      this.adjustDifficulty();
-    }
-  },
+      updateScore: function() {
+        console.log(`Items Found: ${this.itemsFound}/${this.totalItems}`);
+      },
 
-  adjustDifficulty: function() {
-    console.log(`Difficulty adjusted to: ${this.agentDifficulty}`);
-  }
-});
+      evaluatePerformance: function() {
+        if (this.itemsFound >= this.totalItems) {
+          console.log('Game Complete!');
+          this.trainAgent();
+        } else if (this.agentModel) {
+          const state = tf.tensor2d([this.itemsFound / this.totalItems], [1, 1]);
+          const prediction = this.agentModel.predict(state);
+          this.agentDifficulty = prediction.argMax(-1).dataSync()[0];
+          this.adjustDifficulty();
+        }
+      },
 
-// Initialize Scene
-const scene = document.createElement('a-scene');
-scene.setAttribute('game-manager', '');
-document.body.appendChild(scene);
+      adjustDifficulty: function() {
+        console.log(`Difficulty adjusted to: ${this.agentDifficulty}`);
+        if (this.agentDifficulty === 0) this.provideHint();
+        else this.hintElement.setAttribute('visible', false);
+      },
+
+      provideHint: function() {
+        const items = document.querySelectorAll('.search-item');
+        if (items.length > 0) {
+          const target = items[Math.floor(Math.random() * items.length)];
+          this.hintElement.setAttribute('position', target.getAttribute('position'));
+          this.hintElement.setAttribute('visible', true);
+          console.log('Hint provided');
+        }
+      },
+
+      trainAgent: function() {
+        this.experienceBuffer.push({state: this.itemsFound / this.totalItems, reward: this.itemsFound});
+
+        if (this.experienceBuffer.length >= 5) {
+          const batch = tf.tensor2d(this.experienceBuffer.map(e => [e.state]));
+          const rewards = tf.tensor2d(this.experienceBuffer.map(e => [e.reward]));
+
+          const targets = this.agentModel.predict(batch);
+          targets.print();
+
+          for (let i = 0; i < this.experienceBuffer.length; i++) {
+            targets.buffer().set(this.experienceBuffer[i].reward, i, this.agentDifficulty);
+          }
+
+          this.agentModel.fit(batch, targets, {epochs: 10}).then(() => {
+            console.log('Agent trained');
+            this.experienceBuffer = [];
+          });
+        }
+      }
+    });
+
+    // Initialize Scene
+    const scene = document.createElement('a-scene');
+    scene.setAttribute('game-manager', '');
+    document.body.appendChild(scene);
+    </script>
+</body>
+</html>
