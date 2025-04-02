@@ -3,18 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Agente Limitado en la Escena</title>
+    <title>Agente en A-Frame con Aprendizaje por Refuerzo</title>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script> <!-- Cargar TensorFlow.js -->
   </head>
   <body>
     <a-scene>
       <!-- Obstáculos en el entorno -->
-      <a-box position="3 1 -5" width="1" height="1" depth="1" color="red"></a-box>
-      <a-box position="-3 1 -7" width="1" height="1" depth="1" color="red"></a-box>
-      <a-box position="2 1 -10" width="1" height="1" depth="1" color="red"></a-box>
-      <a-box position="-5 1 -12" width="1" height="1" depth="1" color="red"></a-box>
-      <a-box position="4 1 -8" width="1" height="1" depth="1" color="red"></a-box>
+      <a-box position="2 1 -5" width="1" height="1" depth="1" color="red"></a-box>
+      <a-box position="-2 1 -5" width="1" height="1" depth="1" color="red"></a-box>
+      <a-box position="0 1 -3" width="1" height="1" depth="1" color="red"></a-box>
 
       <!-- Agente (esfera azul) -->
       <a-sphere id="agent" position="0 1 -3" radius="0.5" color="blue"></a-sphere>
@@ -24,6 +22,7 @@
     </a-scene>
 
     <script>
+      // Definir los límites de la escena
       const SCENE_LIMIT_X = 5;  // Límite en el eje X
       const SCENE_LIMIT_Z = 5;  // Límite en el eje Z
 
@@ -38,7 +37,7 @@
         metrics: ['accuracy'],
       });
 
-      // Función que calcula las distancias entre el agente y los obstáculos
+      // Función que calcula la distancia entre el agente y los obstáculos
       function getDistances() {
         const agent = document.getElementById('agent');
         const obstacles = document.querySelectorAll('a-box');
@@ -70,13 +69,15 @@
           document.getElementById('agent').object3D.rotation.y -= Math.PI / 10;
         } else { // Mover adelante
           position.z -= 0.1;
-          // Limitar el movimiento en el eje Z
+          
+          // Limitar el movimiento en el eje Z (para que no se salga de la escena)
           if (Math.abs(position.z) > SCENE_LIMIT_Z) {
             position.z = Math.sign(position.z) * SCENE_LIMIT_Z;
           }
-          
+
           position.x -= 0.1;
-          // Limitar el movimiento en el eje X
+          
+          // Limitar el movimiento en el eje X (para que no se salga de la escena)
           if (Math.abs(position.x) > SCENE_LIMIT_X) {
             position.x = Math.sign(position.x) * SCENE_LIMIT_X;
           }
