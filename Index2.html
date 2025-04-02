@@ -119,8 +119,18 @@
         return 1;
       }
 
+      // Asegúrate de que el agente reciba una recompensa inicial para que comience a moverse
+      async function initialMovement() {
+        let state = getDistances();
+        let action = await getAction(state);
+        let reward = calculateReward(state);
+        await trainModel(state, action, reward);
+      }
+
       // Iniciar el entrenamiento
-      setInterval(trainAgent, 100);
+      setInterval(trainAgent, 200); // Modifica el intervalo para que el entrenamiento sea más constante
+      initialMovement(); // Asegura que el agente comience a moverse
+
     </script>
   </body>
 </html>
