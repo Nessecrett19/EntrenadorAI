@@ -8,18 +8,24 @@
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script> <!-- Cargar TensorFlow.js -->
   </head>
   <body>
-    <a-scene background="color: #a5faff">
-      <!-- Obstáculos en el entorno -->
-      <a-box position="2 1 -5" width="1" height="1" depth="1" color="red"></a-box>
-      <a-box position="-2 1 -5" width="1" height="1" depth="1" color="red"></a-box>
-      <a-box position="0 1 -3" width="1" height="1" depth="1" color="red"></a-box>
-
-      <!-- Agente (esfera azul) -->
+  <a-scene background="color: #a5faff">
+      <!-- Agente -->
       <a-entity id="agent" position="0 0.160 -3" scale="0.01 0.01 0.01" gltf-model="tour_ia.glb"></a-entity>
+    
+      <!-- Habitación base -->
       <a-entity id="casa" position="0 0.169 -3" scale="9 9 9" gltf-model="habitacion1.glb"></a-entity>
+    
+      <!-- Muebles y objetos distribuidos dentro de la habitación -->
+      <a-entity position="-3 0.05 -4" scale="0.8 0.8 0.8" gltf-model="Librero.glb"></a-entity>
+      <a-entity position="3 0.05 -4" scale="0.8 0.8 0.8" gltf-model="escritorio biblioteca.glb"></a-entity>
+      <a-entity position="1 0.05 -2" scale="0.5 0.5 0.5" gltf-model="silla biblioteca.glb"></a-entity>
+      <a-entity position="-1.5 0.05 -3" scale="0.5 0.5 0.5" gltf-model="planta 1.glb"></a-entity>
+      <a-entity position="2 0.05 -1.5" scale="0.5 0.5 0.5" gltf-model="planta 2.glb"></a-entity>
+    
       <!-- Cámara -->
       <a-camera position="0 1 0"></a-camera>
-    </a-scene>
+  </a-scene>
+
 
     <script>
       // Definir los límites de la escena
