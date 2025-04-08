@@ -104,7 +104,7 @@
     async function trainModel(state, action, reward) {
       const input = tf.tensor2d([state]);
       const target = tf.tensor2d([[0, 0, 0]]);
-      target.buffer().set(reward, 0, action);
+      target.arraySync()[0][action] = reward; // Actualizar la acción específica
       await model.fit(input, target, { epochs: 1 });
     }
 
