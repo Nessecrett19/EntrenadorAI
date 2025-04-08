@@ -42,10 +42,10 @@
   <script>
     const model = tf.sequential();
     model.add(tf.layers.dense({ units: 16, activation: 'relu', inputShape: [5] }));
-    model.add(tf.layers.dense({ units: 4, activation: 'softmax' })); // izquierda, derecha, adelante, atrás
+    model.add(tf.layers.dense({ units: 4, activation: 'softmax' }));
     model.compile({ optimizer: tf.train.adam(0.01), loss: 'categoricalCrossentropy' });
 
-    let epsilon = 0.1; // probabilidad de tomar una acción aleatoria
+    let epsilon = 0.1;
 
     async function loadModel() {
       try {
@@ -81,7 +81,6 @@
       const raycaster = new THREE.Raycaster(origin, direction, 0, 0.5);
       const obstacles = raycaster.intersectObjects(document.querySelector('a-scene').object3D.children, true);
       
-      // Debug visual del rayo
       const ray = document.getElementById('ray');
       const end = direction.clone().multiplyScalar(0.5).add(origin);
       ray.setAttribute('line', `start: ${origin.x} ${origin.y} ${origin.z}; end: ${end.x} ${end.y} ${end.z}; color: red`);
@@ -105,24 +104,39 @@
 
     async function getAction(state) {
       if (Math.random() < epsilon) {
-        return Math.floor(Math.random() * 4); // acción aleatoria
+        return Math.floor(Math.random() * 4);
       }
       const input = tf.tensor2d([state]);
       const output = model.predict(input);
       return output.argMax(1).dataSync()[0];
     }
 
+    const roomBounds = {
+      minX: -4, maxX: 4,
+      minZ: -4, maxZ: 4
+    };
+
     function applyAction(action) {
       const agent = getAgent();
-      const pos = agent.getAttribute('position');
+      const currentPos = agent.getAttribute('position');
+      const newPos = { ...currentPos };
       const step = 0.2;
 
-      if (action === 0) pos.x -= step; // izquierda
-      if (action === 1) pos.x += step; // derecha
-      if (action === 2) pos.z -= step; // adelante
-      if (action === 3) pos.z += step; // atrás
+      if (action === 0) newPos.x -= step;
+      if (action === 1) newPos.x += step;
+      if (action === 2) newPos.z -= step;
+      if (action === 3) newPos.z += step;
 
-      agent.setAttribute('position', pos);
+      const bounced = (newPos.x < roomBounds.minX || newPos.x > roomBounds.maxX ||
+                       newPos.z < roomBounds.minZ || newPos.z > roomBounds.maxZ);
+
+      if (bounced) {
+        // Rebote: invertimos la dirección del movimiento
+        if (action === 0 || action === 1) newPos.x = currentPos.x - (newPos.x - currentPos.x);
+        if (action === 2 || action === 3) newPos.z = currentPos.z - (newPos.z - currentPos.z);
+      }
+
+      agent.setAttribute('position', newPos);
     }
 
     async function trainModel(state, action, reward) {
