@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Agente Inteligente A-Frame</title>
+  <title>Agente A-Frame con Aprendizaje</title>
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
 </head>
@@ -12,118 +12,125 @@
     <!-- Agente -->
     <a-entity id="agent" position="0 0.160 -3" scale="0.01 0.01 0.01" gltf-model="tour_ia.glb"></a-entity>
 
-    <!-- Meta (un cubo visible en una esquina de la habitación) -->
-    <a-box id="goal" position="4 0.1 -4" depth="0.2" height="0.2" width="0.2" color="green"></a-box>
+    <!-- Meta (un cubo amarillo) -->
+    <a-box id="goal" position="4 0.1 4" color="yellow" depth="0.2" height="0.2" width="0.2"></a-box>
 
-    <!-- Objetos como obstáculos -->
-    <a-entity position="-0.63 -15.64 20.24" scale="100 100 100" gltf-model="Librero.glb" rotation="0 180 0" class="obstacle"></a-entity>
-    <a-entity position="16.87 -5.87 -1.26" scale="0.08 0.089 0.099" gltf-model="escritorio biblioteca.glb" class="obstacle"></a-entity>
-    <a-entity position="10.05 -16.03 -1.17" scale="10 10 10" gltf-model="silla biblioteca.glb" rotation="0 270 0" class="obstacle"></a-entity>
-    <a-entity position="-13.33 -16.59 19.44" scale="10 10 10" gltf-model="planta 1.glb" class="obstacle"></a-entity>
-    <a-entity position="19.06 -16.03 18.13" scale="2 2 2" gltf-model="planta 2.glb" class="obstacle"></a-entity>
-    <a-entity position="-19.76 11.17 11.61" scale="1 11.02 9.22" gltf-model="cortina.glb" class="obstacle"></a-entity>
-    <a-entity position="19.85 11.17 11.61" scale="1 11.02 9.22" gltf-model="cortina.glb" class="obstacle"></a-entity>
-    <a-entity position="-19.76 11.17 -15.71" scale="1 11.02 9.22" gltf-model="cortina.glb" class="obstacle"></a-entity>
-    <a-entity position="19.97 11.17 -16.28" scale="1 11.02 9.22" gltf-model="cortina.glb" class="obstacle"></a-entity>
-    <a-entity position="-1.48 -3.92 3.85" scale="4.04 3.54 3.52" gltf-model="Ventana.glb" class="obstacle"></a-entity>
-    <a-entity position="42.15 -4.07 4.07" scale="4.04 3.54 3.52" gltf-model="Ventana.glb" class="obstacle"></a-entity>
-    <a-entity position="-15.26 -15.92 -25.42" scale="1.2 3 1" gltf-model="libros.glb" class="obstacle"></a-entity>
-    <a-entity position="15.07 -15.81 -25.21" scale="1.2 3 1" gltf-model="libros.glb" class="obstacle"></a-entity>
-    <a-entity position="1 1 1" scale="1 1 1" gltf-model="escritorio_lap.glb" class="obstacle"></a-entity>
+    <!-- Habitación y objetos -->
+    <a-entity id="casa" position="0 0.169 -3" scale="9 9 9" gltf-model="habitacion1.glb"></a-entity>
+    <a-entity position="-0.63348 -15.64467 20.2487" scale="100 100 100" gltf-model="Librero.glb"></a-entity>
+    <a-entity position="16.87996 -5.87886 -1.26722" scale="0.08 0.089 0.099" gltf-model="escritorio biblioteca.glb"></a-entity>
+    <a-entity position="10.05495 -16.03651 -1.17274" scale="10 10 10" gltf-model="silla biblioteca.glb" rotation="0 270 0"></a-entity>
+    <a-entity position="-13.3353 -16.59778 19.44206" scale="10 10 10" gltf-model="planta 1.glb"></a-entity>
+    <a-entity position="19.06531 -16.03257 18.13816" scale="2 2 2" gltf-model="planta 2.glb"></a-entity>
+    <a-entity position="-19.76965 11.17943 11.6132" scale="1 11.02161 9.22213" gltf-model="cortina.glb"></a-entity>
+    <a-entity position="19.85184 11.17943 11.6132" scale="1 11.02161 9.22213" gltf-model="cortina.glb"></a-entity>
+    <a-entity position="-19.76965 11.17943 -15.71637" scale="1 11.02161 9.22213" gltf-model="cortina.glb"></a-entity>
+    <a-entity position="19.97024 11.17943 -16.28151" scale="1 11.02161 9.22213" gltf-model="cortina.glb"></a-entity>
+    <a-entity position="-1.48626 -3.92519 3.85882" scale="4.04 3.54877 3.52717" gltf-model="Ventana.glb"></a-entity>
+    <a-entity position="42.15875 -4.07854 4.07798" scale="4.04 3.54877 3.52717" gltf-model="Ventana.glb"></a-entity>
+    <a-entity position="-15.26294 -15.92291 -25.42243" scale="1.2 3 1" gltf-model="libros.glb"></a-entity>
+    <a-entity position="15.07916 -15.81848 -25.21595" scale="1.2 3 1" gltf-model="libros.glb"></a-entity>
+    <a-entity position="1 1 1" scale="1 1 1" gltf-model="escritorio_lap.glb"></a-entity>
 
     <!-- Cámara -->
-    <a-camera position="0 1 0"></a-camera>
+    <a-camera position="0 1.6 5"></a-camera>
   </a-scene>
 
   <script>
-    // Configuración
-    const agent = document.getElementById('agent');
-    const goal = document.getElementById('goal');
-    const speed = 0.05;
-    const rotationStep = Math.PI / 10;
-
-    // Crear modelo de red neuronal
     const model = tf.sequential();
-    model.add(tf.layers.dense({ units: 16, activation: 'relu', inputShape: [3] }));
-    model.add(tf.layers.dense({ units: 3, activation: 'softmax' }));
-    model.compile({ optimizer: 'adam', loss: 'categoricalCrossentropy' });
+    model.add(tf.layers.dense({ units: 16, activation: 'relu', inputShape: [4] }));
+    model.add(tf.layers.dense({ units: 3, activation: 'softmax' })); // izquierda, derecha, adelante
 
-    // Raycasters virtuales (delante, izquierda, derecha)
-    function getDistances() {
-      const directions = [
-        new THREE.Vector3(0, 0, -1), // adelante
-        new THREE.Vector3(-1, 0, 0), // izquierda
-        new THREE.Vector3(1, 0, 0),  // derecha
-      ];
+    model.compile({
+      optimizer: tf.train.adam(0.01),
+      loss: 'categoricalCrossentropy'
+    });
 
-      const origin = agent.object3D.position.clone();
-      const scene = document.querySelector('a-scene').object3D;
-      const obstacles = [];
-      scene.traverse(obj => {
-        if (obj.el && obj.el.classList && obj.el.classList.contains('obstacle')) {
-          obstacles.push(obj);
-        }
-      });
-
-      return directions.map(dir => {
-        const dirWorld = dir.clone().applyQuaternion(agent.object3D.quaternion).normalize();
-        const raycaster = new THREE.Raycaster(origin, dirWorld);
-        const intersects = raycaster.intersectObjects(obstacles, true);
-        return intersects.length > 0 ? intersects[0].distance : 10;
-      });
+    async function loadModel() {
+      try {
+        const loaded = await tf.loadLayersModel('indexeddb://agente-modelo');
+        model.setWeights(loaded.getWeights());
+        console.log('📦 Modelo cargado desde IndexedDB');
+      } catch (e) {
+        console.log('⚠️ No se encontró modelo previo, iniciando nuevo');
+      }
     }
 
-    function calculateReward(distances, toGoal) {
-      const tooClose = distances.some(d => d < 0.5);
-      if (tooClose) return -1;
-      if (toGoal < 1) return 5; // Llegó a la meta
-      return 1 / toGoal; // Recompensa por acercarse
+    loadModel();
+
+    // Guardar el modelo automáticamente cada 30s
+    setInterval(() => {
+      model.save('indexeddb://agente-modelo');
+      console.log('✅ Modelo guardado');
+    }, 30000);
+
+    function getAgentPosition() {
+      return document.getElementById('agent').object3D.position;
+    }
+
+    function getGoalPosition() {
+      return document.getElementById('goal').object3D.position;
     }
 
     function getDistanceToGoal() {
-      const a = agent.object3D.position;
-      const g = goal.object3D.position;
-      return a.distanceTo(g);
+      const agentPos = getAgentPosition();
+      const goalPos = getGoalPosition();
+      return Math.sqrt(
+        Math.pow(agentPos.x - goalPos.x, 2) +
+        Math.pow(agentPos.z - goalPos.z, 2)
+      );
+    }
+
+    function getState() {
+      const agent = getAgentPosition();
+      const goal = getGoalPosition();
+      const dx = goal.x - agent.x;
+      const dz = goal.z - agent.z;
+      const dist = getDistanceToGoal();
+      return [dx, dz, agent.x, agent.z];
+    }
+
+    function calculateReward(distBefore, distAfter) {
+      return distAfter < distBefore ? 1 : -1;
     }
 
     async function getAction(state) {
       const input = tf.tensor2d([state]);
-      const prediction = model.predict(input);
-      const action = (await prediction.argMax(1).data())[0];
+      const output = model.predict(input);
+      const action = output.argMax(1).dataSync()[0];
       return action;
     }
 
     async function trainModel(state, action, reward) {
       const input = tf.tensor2d([state]);
       const target = tf.tensor2d([[0, 0, 0]]);
-      target.buffer().then(buf => {
-        buf.set(reward, 0, action);
-        model.fit(input, buf.toTensor(), { epochs: 1 });
-      });
+      target.buffer().set(reward, 0, action);
+      await model.fit(input, target, { epochs: 1 });
     }
 
     function applyAction(action) {
-      if (action === 0) {
-        agent.object3D.rotation.y += rotationStep;
-      } else if (action === 1) {
-        agent.object3D.rotation.y -= rotationStep;
-      } else {
-        const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(agent.object3D.quaternion);
-        agent.object3D.position.add(dir.multiplyScalar(speed));
-      }
+      const agent = document.getElementById('agent');
+      const pos = agent.getAttribute('position');
+      const step = 0.2;
+
+      if (action === 0) pos.x -= step;      // izquierda
+      if (action === 1) pos.x += step;      // derecha
+      if (action === 2) pos.z -= step;      // adelante
+
+      agent.setAttribute('position', pos);
     }
 
     async function trainStep() {
-      const distances = getDistances();
-      const toGoal = getDistanceToGoal();
-      const state = [...distances];
+      const state = getState();
+      const distBefore = getDistanceToGoal();
       const action = await getAction(state);
       applyAction(action);
-      const reward = calculateReward(distances, toGoal);
+      const distAfter = getDistanceToGoal();
+      const reward = calculateReward(distBefore, distAfter);
       await trainModel(state, action, reward);
     }
 
-    setInterval(trainStep, 200); // Entrena cada 200 ms
+    setInterval(trainStep, 200);
   </script>
 </body>
 </html>
