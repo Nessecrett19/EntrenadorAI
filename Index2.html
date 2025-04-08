@@ -33,41 +33,51 @@
       const SCENE_LIMIT_Z = 5;  // Límite en el eje Z
 
       // Crear modelo de red neuronal en TensorFlow.js
-      const model = tf.sequential();
-      model.add(tf.layers.dense({ units: 16, activation: 'relu', inputShape: [3] }));
-      model.add(tf.layers.dense({ units: 3, activation: 'softmax' }));
-      model.compile({
-        optimizer: tf.train.adam(0.01),
-        loss: 'categoricalCrossentropy',
-        metrics: ['accuracy'],
-      });
+      // Crear modelo de red neuronal en TensorFlow.js
+const model = tf.sequential();
+model.add(tf.layers.dense({ units: 16, activation: 'relu', inputShape: [3] }));
+model.add(tf.layers.dense({ units: 3, activation: 'softmax' }));
+model.compile({
+  optimizer: tf.train.adam(0.01),
+  loss: 'categoricalCrossentropy',
+  metrics: ['accuracy'],
+});
 
       // Función para obtener las distancias del agente a los obstáculos y la meta
-      function getDistances() {
-        const agent = document.getElementById('agent');
-        const obstacles = document.querySelectorAll('a-entity');
-        const distances = [];
+      // Función para obtener las distancias del agente a los obstáculos y la meta
+function getDistances() {
+  const agent = document.getElementById('agent');
+  const obstacles = document.querySelectorAll('a-entity');
+  const distances = [];
 
-        // Distancia al cubo (meta)
-        const goal = document.querySelector('a-box');
-        const agentPos = agent.getAttribute('position');
-        const goalPos = goal.getAttribute('position');
-        const goalDistance = Math.sqrt(Math.pow(agentPos.x - goalPos.x, 2) + Math.pow(agentPos.z - goalPos.z, 2));
-        distances.push(goalDistance);
+  // Distancia al cubo (meta)
+  const goal = document.querySelector('a-box');
+  const agentPos = agent.getAttribute('position');
+  const goalPos = goal.getAttribute('position');
+  const goalDistance = Math.sqrt(Math.pow(agentPos.x - goalPos.x, 2) + Math.pow(agentPos.z - goalPos.z, 2));
+  distances.push(goalDistance);
 
-        // Distancia a los obstáculos
-        obstacles.forEach((obstacle) => {
-          if (obstacle !== goal) { // Excluir la meta
-            const obstaclePos = obstacle.getAttribute('position');
-            const distance = Math.sqrt(
-              Math.pow(agentPos.x - obstaclePos.x, 2) +
-              Math.pow(agentPos.z - obstaclePos.z, 2)
-            );
-            distances.push(distance);
-          }
-        });
-        return distances;
-      }
+  // Solo agrega las distancias a los primeros dos obstáculos
+  let count = 0;
+  obstacles.forEach((obstacle) => {
+    if (count < 2 && obstacle !== goal) { // Excluir la meta y tomar solo los primeros dos obstáculos
+      const obstaclePos = obstacle.getAttribute('position');
+      const distance = Math.sqrt(
+        Math.pow(agentPos.x - obstaclePos.x, 2) +
+        Math.pow(agentPos.z - obstaclePos.z, 2)
+      );
+      distances.push(distance);
+      count++;
+    }
+  });
+
+  // Asegurarse de que siempre hay 3 entradas (distancia a la meta y 2 obstáculos)
+  while (distances.length < 3) {
+    distances.push(Infinity);  // Rellenar con valores grandes si no hay suficientes obstáculos
+  }
+
+  return distances;
+}
 
       // Función para limitar el movimiento del agente dentro de la escena
       function checkBounds(position) {
