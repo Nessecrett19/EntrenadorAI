@@ -1,157 +1,145 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Agente A-Frame con Aprendizaje</title>
-  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-</head>
-<body>
-  <a-scene background="color: #a5faff">
-    <!-- Agente -->
-    <a-entity id="agent" position="0 0.160 -3" scale="0.01 0.01 0.01" gltf-model="tour_ia.glb"></a-entity>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Agente en A-Frame con Aprendizaje por Refuerzo</title>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script> <!-- Cargar TensorFlow.js -->
+  </head>
+  <body>
+    <a-scene background="color: #a5faff">
+      <!-- Agente -->
+      <a-entity id="agent" position="0 0.160 -3" scale="0.01 0.01 0.01" gltf-model="tour_ia.glb"></a-entity>
 
-    <!-- Meta (un cubo amarillo) -->
-    <a-box id="goal" position="4 0.1 4" color="yellow" depth="0.2" height="0.2" width="0.2"></a-box>
+      <!-- Habitación base -->
+      <a-entity id="casa" position="0 0.169 -3" scale="9 9 9" gltf-model="habitacion1.glb"></a-entity>
 
-    <!-- Obstáculos (agregados manualmente) -->
-    <a-box position="1 0.1 2" color="red" depth="1" height="1" width="1"></a-box>
-    <a-box position="3 0.1 -1" color="blue" depth="1" height="1" width="1"></a-box>
-    <a-box position="-2 0.1 -2" color="green" depth="1" height="1" width="1"></a-box>
+      <!-- Objeto meta (cubo en la esquina) -->
+      <a-box position="5 0.5 5" color="red" scale="1 1 1"></a-box>
 
-    <!-- Habitación y objetos -->
-    <a-entity id="casa" position="0 0.169 -3" scale="9 9 9" gltf-model="habitacion1.glb"></a-entity>
-    <a-entity position="-0.63348 -15.64467 20.2487" scale="100 100 100" gltf-model="Librero.glb"></a-entity>
-    <a-entity position="16.87996 -5.87886 -1.26722" scale="0.08 0.089 0.099" gltf-model="escritorio biblioteca.glb"></a-entity>
-    <a-entity position="10.05495 -16.03651 -1.17274" scale="10 10 10" gltf-model="silla biblioteca.glb" rotation="0 270 0"></a-entity>
+      <!-- Obstáculos -->
+      <a-entity position="-0.63348 -15.64467 20.2487" scale="100 100 100" gltf-model="Librero.glb"></a-entity>
+      <a-entity position="16.87996 -5.87886 -1.26722" scale="0.08 0.089 0.099" gltf-model="escritorio biblioteca.glb"></a-entity>
+      <a-entity position="10.05495 -16.03651 -1.17274" scale="10 10 10" gltf-model="silla biblioteca.glb"></a-entity>
 
-    <!-- Cámara -->
-    <a-camera position="0 1.6 5"></a-camera>
-  </a-scene>
+      <!-- Cámara -->
+      <a-camera position="0 1 0"></a-camera>
+    </a-scene>
 
-  <script>
-    const model = tf.sequential();
-    model.add(tf.layers.dense({ units: 16, activation: 'relu', inputShape: [6] }));  // 4 distancias + 2 coordenadas (X, Z)
-    model.add(tf.layers.dense({ units: 3, activation: 'softmax' })); // izquierda, derecha, adelante
+    <script>
+      // Limites de la escena
+      const SCENE_LIMIT_X = 5;  // Límite en el eje X
+      const SCENE_LIMIT_Z = 5;  // Límite en el eje Z
 
-    model.compile({
-      optimizer: tf.train.adam(0.01),
-      loss: 'categoricalCrossentropy'
-    });
-
-    async function loadModel() {
-      try {
-        const loaded = await tf.loadLayersModel('indexeddb://agente-modelo');
-        model.setWeights(loaded.getWeights());
-        console.log('📦 Modelo cargado desde IndexedDB');
-      } catch (e) {
-        console.log('⚠️ No se encontró modelo previo, iniciando nuevo');
-      }
-    }
-
-    loadModel();
-
-    // Guardar el modelo automáticamente cada 30s
-    setInterval(() => {
-      model.save('indexeddb://agente-modelo');
-      console.log('✅ Modelo guardado');
-    }, 30000);
-
-    function getAgentPosition() {
-      return document.getElementById('agent').object3D.position;
-    }
-
-    function getGoalPosition() {
-      return document.getElementById('goal').object3D.position;
-    }
-
-    // Calcular la distancia entre el agente y la meta
-    function getDistanceToGoal() {
-      const agentPos = getAgentPosition();
-      const goalPos = getGoalPosition();
-      return Math.sqrt(
-        Math.pow(agentPos.x - goalPos.x, 2) +
-        Math.pow(agentPos.z - goalPos.z, 2)
-      );
-    }
-
-    // Función que calcula las distancias a los obstáculos
-    function getObstacleDistances() {
-      const obstacles = document.querySelectorAll('a-box');
-      const agentPos = getAgentPosition();
-
-      let distances = [];
-      obstacles.forEach((obstacle) => {
-        const obstaclePos = obstacle.object3D.position;
-        const distance = Math.sqrt(
-          Math.pow(agentPos.x - obstaclePos.x, 2) +
-          Math.pow(agentPos.z - obstaclePos.z, 2)
-        );
-        distances.push(distance);
+      // Crear modelo de red neuronal en TensorFlow.js
+      const model = tf.sequential();
+      model.add(tf.layers.dense({ units: 16, activation: 'relu', inputShape: [3] }));
+      model.add(tf.layers.dense({ units: 3, activation: 'softmax' }));
+      model.compile({
+        optimizer: tf.train.adam(0.01),
+        loss: 'categoricalCrossentropy',
+        metrics: ['accuracy'],
       });
 
-      // Si no hay obstáculos, devolver valores muy grandes
-      if (distances.length === 0) {
-        distances = [100, 100, 100];
+      // Función para obtener las distancias del agente a los obstáculos y la meta
+      function getDistances() {
+        const agent = document.getElementById('agent');
+        const obstacles = document.querySelectorAll('a-entity');
+        const distances = [];
+
+        // Distancia al cubo (meta)
+        const goal = document.querySelector('a-box');
+        const agentPos = agent.getAttribute('position');
+        const goalPos = goal.getAttribute('position');
+        const goalDistance = Math.sqrt(Math.pow(agentPos.x - goalPos.x, 2) + Math.pow(agentPos.z - goalPos.z, 2));
+        distances.push(goalDistance);
+
+        // Distancia a los obstáculos
+        obstacles.forEach((obstacle) => {
+          if (obstacle !== goal) { // Excluir la meta
+            const obstaclePos = obstacle.getAttribute('position');
+            const distance = Math.sqrt(
+              Math.pow(agentPos.x - obstaclePos.x, 2) +
+              Math.pow(agentPos.z - obstaclePos.z, 2)
+            );
+            distances.push(distance);
+          }
+        });
+        return distances;
       }
 
-      return distances;
-    }
+      // Función para limitar el movimiento del agente dentro de la escena
+      function checkBounds(position) {
+        if (Math.abs(position.x) > SCENE_LIMIT_X) {
+          position.x = Math.sign(position.x) * SCENE_LIMIT_X;
+        }
+        if (Math.abs(position.z) > SCENE_LIMIT_Z) {
+          position.z = Math.sign(position.z) * SCENE_LIMIT_Z;
+        }
+        return position;
+      }
 
-    // Función para generar el estado (entradas del modelo)
-    function getState() {
-      const agent = getAgentPosition();
-      const goal = getGoalPosition();
-      const dx = goal.x - agent.x;
-      const dz = goal.z - agent.z;
-      const distToGoal = getDistanceToGoal();
+      // Función de recompensa
+      function calculateReward(state) {
+        const goalDistance = state[0];
+        const isTooClose = state.slice(1).some((distance) => distance < 1); // Si está muy cerca de un obstáculo
 
-      const obstacleDistances = getObstacleDistances();
-      return [...obstacleDistances, dx, dz];  // 3 distancias de obstáculos + 2 distancias a la meta
-    }
+        // Penalización si el agente está demasiado cerca de un obstáculo
+        if (isTooClose) {
+          return -1;
+        }
 
-    function calculateReward(distBefore, distAfter) {
-      return distAfter < distBefore ? 1 : -1;  // Recompensa basada en la proximidad a la meta
-    }
+        // Recompensa si el agente está cerca de la meta
+        if (goalDistance < 1) {
+          return 1;  // Recompensa por alcanzar la meta
+        }
 
-    async function getAction(state) {
-      const input = tf.tensor2d([state]);
-      const output = model.predict(input);
-      const action = output.argMax(1).dataSync()[0];
-      return action;
-    }
+        return 0; // Recompensa neutra si está alejado de la meta y sin obstáculos cercanos
+      }
 
-    async function trainModel(state, action, reward) {
-      const input = tf.tensor2d([state]);
-      const target = tf.tensor2d([[0, 0, 0]]);
-      target.arraySync()[0][action] = reward;  // Actualizar la acción específica
-      await model.fit(input, target, { epochs: 1 });
-    }
+      // Función de entrenamiento
+      async function trainAgent() {
+        const state = getDistances(); // Obtener el estado basado en las distancias
+        const action = await getAction(state); // Decisión de acción (izquierda, derecha, adelante)
 
-    function applyAction(action) {
-      const agent = document.getElementById('agent');
-      const pos = agent.getAttribute('position');
-      const step = 0.2;
+        // Mover al agente según la acción
+        const agent = document.getElementById('agent');
+        let position = agent.getAttribute('position');
 
-      if (action === 0) pos.x -= step;      // izquierda
-      if (action === 1) pos.x += step;      // derecha
-      if (action === 2) pos.z -= step;      // adelante
+        if (action === 0) { // Girar izquierda
+          agent.object3D.rotation.y += Math.PI / 10;
+        } else if (action === 1) { // Girar derecha
+          agent.object3D.rotation.y -= Math.PI / 10;
+        } else { // Mover adelante
+          position.z -= 0.1;
+          position = checkBounds(position); // Asegurarse que no se mueva fuera de los límites
+          agent.setAttribute('position', position);
+        }
 
-      agent.setAttribute('position', pos);
-    }
+        // Actualizar el modelo con la recompensa
+        const reward = calculateReward(state); // Recompensa
+        await trainModel(state, action, reward);
+      }
 
-    async function trainStep() {
-      const state = getState();
-      const distBefore = getDistanceToGoal();
-      const action = await getAction(state);
-      applyAction(action);
-      const distAfter = getDistanceToGoal();
-      const reward = calculateReward(distBefore, distAfter);
-      await trainModel(state, action, reward);
-    }
+      // Obtener la acción del modelo (izquierda, derecha, adelante)
+      async function getAction(state) {
+        const input = tf.tensor2d([state]);
+        const predictions = model.predict(input);
+        const action = predictions.argMax(1).dataSync()[0];
+        return action;
+      }
 
-    setInterval(trainStep, 200);
-  </script>
-</body>
+      // Función para entrenar el modelo
+      async function trainModel(state, action, reward) {
+        const input = tf.tensor2d([state]);
+        const target = tf.tensor2d([[0, 0, 0]]);
+        target.dataSync()[action] = reward;  // Actualiza la acción seleccionada con la recompensa
+        await model.fit(input, target, { epochs: 1 });
+      }
+
+      // Iniciar el entrenamiento cada 200 ms
+      setInterval(trainAgent, 200);
+    </script>
+  </body>
 </html>
