@@ -48,11 +48,14 @@
         model.add(tf.layers.dense({ units: 16, activation: 'relu', inputShape: [3] }));
         model.add(tf.layers.dense({ units: 3, activation: 'softmax' }));
 
+        // COMPILAR el modelo aquí
         model.compile({
           optimizer: tf.train.adam(0.01),
           loss: 'categoricalCrossentropy',
           metrics: ['accuracy'],
         });
+
+        console.log('Modelo creado y compilado');
       }
 
       // Función que calcula la distancia entre el agente y los obstáculos
