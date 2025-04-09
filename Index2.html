@@ -13,8 +13,10 @@
       <!-- Agente -->
       <a-entity id="agent" position="0 0.160 -3" scale="0.01 0.01 0.01" gltf-model="tour_ia.glb"></a-entity>
       
-      <!-- Obstáculo (Ejemplo de un cubo) -->
+      <!-- Obstáculos (Tres obstáculos en este caso) -->
       <a-box position="2 0.5 -5" width="1" height="1" depth="1" color="red"></a-box>
+      <a-box position="-2 0.5 -5" width="1" height="1" depth="1" color="blue"></a-box>
+      <a-box position="0 0.5 -5" width="1" height="1" depth="1" color="yellow"></a-box>
 
       <!-- Meta (Objetivo) -->
       <a-box position="5 0.5 -5" width="1" height="1" depth="1" color="green"></a-box>
@@ -68,7 +70,13 @@
           );
           distances.push(distance);
         });
-        return distances;
+
+        // Asegurarse de que siempre haya 3 distancias
+        while (distances.length < 3) {
+          distances.push(10); // Valor de distancia ficticia en caso de que no haya suficientes obstáculos
+        }
+
+        return distances.slice(0, 3); // Solo devuelve las primeras 3 distancias
       }
 
       // Función de entrenamiento del agente
